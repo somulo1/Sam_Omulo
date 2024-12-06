@@ -66,6 +66,19 @@ const Portfolio: React.FC = () => {
     updateAboutContent({ title, subtitle, description });
   };
 
+  function setCookie(name: string, value: string, days?: number) {
+    let expires = "";
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=None; Secure";
+  }
+
+  // Example usage of setting a cookie
+  setCookie("__vercel_live_token", "your_token_value", 7); // Set cookie for 7 days
+
   return (
     <div className="min-h-screen bg-[#081b29] text-[#ededed]">
       {/* Header */}
