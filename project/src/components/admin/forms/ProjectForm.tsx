@@ -109,62 +109,48 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSubmit, onCancel }
         throw new Error('You must be logged in to create or edit projects');
       }
 
-      // Generate a unique slug from the project title
-      let slug = createSlug(data.title);
-      let slugExists = true;
-      let attempt = 1;
+      const projectData = data;
 
-      // Check for slug uniqueness and append a number if needed
-      while (slugExists) {
-        const { data: existingProject } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('slug', slug)
-          .single();
-
-        if (!existingProject) {
-          slugExists = false;
-        } else {
-          slug = `${createSlug(data.title)}-${attempt}`;
-          attempt += 1;
-        }
-      }
-
-      // Create or update the project with user_id and unique slug
-      const { data: projectData, error: projectError } = await supabase
+      // Create the project in Supabase
+      const { data: createdProject, error: projectError } = await supabase
         .from('projects')
-        .upsert({
-          id: data.id,
-          title: data.title,
-          description: data.description,
-          technologies: data.technologies,
-          image_url: data.imageUrl,
-          github_url: data.githubUrl,
-          live_url: data.liveUrl,
-          user_id: user.id,
-          slug
-        })
+        .insert([
+          {
+            ...projectData,
+            slug: await createSlug(projectData.title),
+            user_id: user.id
+          }
+        ])
         .select()
         .single();
 
       if (projectError) {
+        console.error('Error creating project:', projectError);
         throw projectError;
       }
 
+      // Handle both 200 and 204 responses as success
+      const projectId = createdProject?.id || projectData.id;
+
       // Then create the project image if there's a pending upload
       if (pendingImageUpload) {
-        await createProjectImage({
-          project_id: projectData.id,
-          image_url: pendingImageUpload.publicUrl,
-          storage_path: pendingImageUpload.path
-        });
-        setPendingImageUpload(null);
+        try {
+          await createProjectImage({
+            project_id: projectId,
+            image_url: pendingImageUpload.publicUrl,
+            storage_path: pendingImageUpload.path
+          });
+          setPendingImageUpload(null);
+        } catch (imageError) {
+          console.error('Error creating project image:', imageError);
+          // Continue with form submission even if image upload fails
+        }
       }
 
       // Call the parent's onSubmit with the complete data
       onSubmit({
         ...data,
-        id: projectData.id
+        id: projectId
       });
     } catch (error) {
       console.error('Error submitting project:', error);

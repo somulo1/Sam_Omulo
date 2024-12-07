@@ -49,7 +49,7 @@ const Portfolio: React.FC = () => {
         body: JSON.stringify(data),
       });
       
-      if (response.ok) {
+      if (response.ok || response.status === 204) {
         alert('Message sent successfully!');
         (event.target as HTMLFormElement).reset();
       } else {
