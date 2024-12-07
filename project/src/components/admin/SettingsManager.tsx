@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { usePortfolioStore } from '../../store/portfolioStore';
-import { uploadFile, getPublicUrl } from '../../utils/supabase';
+import { uploadImage, getPublicUrl } from '../../utils/supabase';
 import { trackEvent } from '../../utils/analytics';
+import { fetchProjectImages } from '../../lib/imageUpload'; // Adjust the import path as necessary
 
 const SettingsManager: React.FC = () => {
   const { 
@@ -14,6 +15,16 @@ const SettingsManager: React.FC = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [images, setImages] = useState([]);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      const fetchedImages = await fetchProjectImages(); // Adjust as necessary
+      setImages(fetchedImages);
+    };
+
+    loadImages();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +74,7 @@ const SettingsManager: React.FC = () => {
       }
 
       // Upload file to Supabase storage
-      const uploadResult = await uploadFile(file, 'profile-photos');
+      const uploadResult = await uploadImage(file as File, 'profile-photos');
       
       if (uploadResult) {
         const publicUrl = getPublicUrl('profile-photos', uploadResult.path);
@@ -103,7 +114,7 @@ const SettingsManager: React.FC = () => {
               type="file" 
               ref={fileInputRef} 
               className="hidden" 
-              accept="image/jpeg,image/png,image/gif"
+              accept="*"
               onChange={handleProfileImageUpload}
             />
             <img 
@@ -203,6 +214,17 @@ const SettingsManager: React.FC = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      <div>
+        <h2>Settings Images</h2>
+        {images.length > 0 ? (
+          images.map(image => (
+            <img key={image.id} src={image.file_path} alt={image.file_name} />
+          ))
+        ) : (
+          <p>No images found.</p>
+        )}
       </div>
     </div>
   );

@@ -39,6 +39,11 @@ export const uploadFile = async (
       throw new Error('User email is required for upload');
     }
 
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validImageTypes.includes(file.type)) {
+      throw new Error('Invalid file type. Only JPEG, PNG, and GIF are allowed.');
+    }
+
     const fileName = path || `${Date.now()}_${file.name}`;
     
     // Detailed upload with comprehensive error handling
@@ -61,13 +66,17 @@ export const uploadFile = async (
       throw error;
     }
 
-    return data;
+    // Return the public URL of the uploaded file
+    const publicUrl = getPublicUrl(bucket, fileName);
+    return { publicUrl, data };
 
   } catch (error) {
     console.error('Complete upload error:', error);
     throw handleSupabaseError(error);
   }
 };
+
+export const uploadImage = uploadFile;
 
 // Utility to get public URL for a file in storage
 export const getPublicUrl = (bucket: string, path: string) => {

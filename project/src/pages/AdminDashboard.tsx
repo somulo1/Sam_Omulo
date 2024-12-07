@@ -10,7 +10,8 @@ import {
   MessageSquare,
   LogOut,
   Plus,
-  ChevronDown
+  ChevronDown,
+  Database
 } from 'lucide-react';
 
 // State Management imports
@@ -34,41 +35,72 @@ import AdminModals from '../components/admin/modals/AdminModals';
 import AccessControl from '../components/admin/AccessControl';
 import ImageUpload from '../components/admin/ImageUpload';
 import AboutController from '../components/admin/AboutController';
+import { ImageUploadTest } from '../components/ImageUploadTest';
 
-const ImageUploader = (props) => {
-  return <ImageUpload {...props} />;
+interface ImageUploaderProps {
+  projectId: string;
+  setImages: (images: any[]) => void;
+  name: string;
+  onChange: (imageUrl: string | null) => void;
+  onError?: (error: string | { message: string; code?: string }) => void;
+  defaultImage?: string;
+  bucket?: string;
+  onSubmit?: (imageUrl: string) => void;
+}
+
+const ImageUploader = (props: Partial<ImageUploaderProps>) => {
+  // Provide default values for required props
+  const defaultProps: ImageUploaderProps = {
+    projectId: props.projectId || 'default',
+    name: props.name || 'image-upload',
+    setImages: props.setImages || (() => {}),
+    onChange: props.onChange || (() => {}),
+    ...props
+  };
+  
+  return <ImageUpload {...defaultProps} />;
 };
 
 const adminTabs = [
   {
     name: 'Dashboard',
     icon: LayoutDashboard,
-    component: ProjectsManager,
+    component: Analytics
   },
   {
     name: 'Projects',
     icon: FileText,
-    component: ProjectsManager,
+    component: ProjectsManager
   },
   {
     name: 'Skills',
     icon: Users,
-    component: SkillsManager,
+    component: SkillsManager
   },
   {
     name: 'Services',
     icon: MessageSquare,
-    component: ServicesManager,
+    component: ServicesManager
   },
   {
-    name: 'Media',
-    icon: Image,
-    component: ContactManager,
+    name: 'About',
+    icon: FileText,
+    component: AboutController
+  },
+  {
+    name: 'Contact',
+    icon: MessageSquare,
+    component: ContactManager
+  },
+  {
+    name: 'Storage Test',
+    icon: Database,
+    component: ImageUploadTest
   },
   {
     name: 'Settings',
     icon: Settings,
-    component: SettingsManager,
+    component: SettingsManager
   },
   {
     name: 'Customization',
@@ -111,14 +143,9 @@ const adminTabs = [
     component: AccessControl,
   },
   {
-    name: 'Image Upload',
-    icon: Settings,
-    component: ImageUploader,
-  },
-  {
-    name: 'About',
-    icon: Settings,
-    component: AboutController,
+    name: 'Media',
+    icon: Image,
+    component: ContactManager,
   },
 ];
 
@@ -126,11 +153,10 @@ const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const [selectedTab, setSelectedTab] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentForm, setCurrentForm] = useState<string | null>(null);
   const adminStore = useAdminStore();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState('');
+  const [activeModal, setActiveModal] = useState<string | null>('');
 
   useEffect(() => {
     if (!user) {
@@ -144,7 +170,7 @@ const AdminDashboard: React.FC = () => {
 
   const handleAddNew = (type: 'project' | 'skill' | 'service') => {
     setCurrentForm(type);
-    setIsModalOpen(true);
+    setActiveModal('new');
   };
 
   const handleLogout = async () => {
@@ -152,7 +178,7 @@ const AdminDashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const handleOpenModal = (modalName) => {
+  const handleOpenModal = (modalName: string) => {
     setActiveModal(modalName);
   };
 
@@ -263,13 +289,6 @@ const AdminDashboard: React.FC = () => {
                 <Plus className="mr-2 h-4 w-4" />
                 Add New
               </button>
-              <button
-                onClick={() => handleOpenModal('about')}
-                className="mt-6 w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <Settings className="mr-2 h-4 w-4" />
-                About
-              </button>
             </div>
 
             {/* Tab Content */}
@@ -281,7 +300,22 @@ const AdminDashboard: React.FC = () => {
                       settings={adminStore.settings}
                       updateSettings={adminStore.updateSettings}
                       onAddNew={handleAddNew}
+                      updateTheme={adminStore.updateTheme}
+                      toggleMaintenanceMode={adminStore.toggleMaintenanceMode}
+                      togglePublicAccess={adminStore.togglePublicAccess}
+                      addAllowedIP={adminStore.addAllowedIP}
+                      removeAllowedIP={adminStore.removeAllowedIP}
+                      updateFonts={adminStore.updateFonts}
+                      updateFontSizes={adminStore.updateFontSizes}
+                      updateSpacing={adminStore.updateSpacing}
+                      updateEffects={adminStore.updateEffects}
+                      updateSEO={adminStore.updateSEO}
+                      updateSecurity={adminStore.updateSecurity}
+                      updateNotifications={adminStore.updateNotifications}
+                      updatePerformance={adminStore.updatePerformance}
+                      ImageUploader={ImageUploader}
                     />
+                    
                   </Tab.Panel>
                 ))}
               </Tab.Panels>
@@ -291,10 +325,10 @@ const AdminDashboard: React.FC = () => {
         {/* Modals */}
         <AdminModals
           activeModal={activeModal}
+          currentForm={currentForm}
           onClose={() => setActiveModal(null)}
         />
-        {activeModal === 'about' && <AboutController />}
-      </div>
+        </div>
     </div>
   );
 };

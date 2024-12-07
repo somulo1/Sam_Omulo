@@ -9,6 +9,8 @@ const ServicesManager: React.FC = () => {
   const { services, deleteService, addService, updateService } = usePortfolioStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | undefined>();
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   const handleEdit = (service: Service) => {
     setSelectedService(service);
@@ -29,6 +31,15 @@ const ServicesManager: React.FC = () => {
     }
     setIsModalOpen(false);
     setSelectedService(undefined);
+  };
+
+  const handleImageUpload = (imageUrl: string | null) => {
+    setUploadedImageUrl(imageUrl);
+    setValue('imageUrl', imageUrl);
+    setImageUploadError(null);
+
+    // Trigger validation for the imageUrl field
+    trigger('imageUrl');
   };
 
   return (

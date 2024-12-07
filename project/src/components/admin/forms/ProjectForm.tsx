@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { useForm, useFieldArray, FieldArrayPath } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { Project } from '../../../types/portfolio';
-import ImageUploader from '../ImageUpload';
+import ImageUploadForm from './ImageUploadForm';
+import ProjectImageGallery from '../ProjectImageGallery';
+import { createProjectImage } from '../../../lib/projectImages';
+import { supabase } from '../../../lib/supabaseClient';
+import { createSlug } from '../../../utils/slug';
 
 // Type for detailed error handling
 type ImageUploadError = {
@@ -30,68 +34,170 @@ interface ProjectFormProps {
 }
 
 const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSubmit, onCancel }) => {
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>(project?.imageUrl || '');
-  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(project?.imageUrl || null);
+  const [imageUploadError, setImageUploadError] = useState<ImageUploadError | null>(null);
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingImageUpload, setPendingImageUpload] = useState<{
+    publicUrl: string;
+    path: string;
+  } | null>(null);
 
-  const { 
-    register, 
-    control,
-    handleSubmit, 
-    setValue, 
-    formState: { errors, isSubmitting } 
-  } = useForm<Project>({
+  const { register, handleSubmit, control, setValue, formState: { errors }, watch } = useForm<Project>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
       id: project?.id || uuidv4(),
       title: project?.title || '',
       description: project?.description || '',
-      technologies: project?.technologies?.length ? project.technologies : [''],
+      technologies: project?.technologies || [],
       imageUrl: project?.imageUrl || '',
       githubUrl: project?.githubUrl || '',
-      liveUrl: project?.liveUrl || '',
-    },
+      liveUrl: project?.liveUrl || ''
+    }
   });
+
+  const projectId = watch('id');
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'technologies' as FieldArrayPath<Project>,
+    name: 'technologies' as keyof Pick<Project, 'technologies'>
   });
 
-  const handleImageUpload = (url: string | null) => {
-    const newImageUrl = url || '';
-    setUploadedImageUrl(newImageUrl);
-    setValue('imageUrl', newImageUrl);
-    setImageUploadError(null);
+  const handleImageUpload = async (publicUrl: string, path: string) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Always store pending image upload, whether editing or creating
+      setPendingImageUpload({ publicUrl, path });
+      setUploadedImageUrl(publicUrl);
+      setValue('imageUrl', publicUrl);
+      setImageUploadError(null);
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      setImageUploadError({
+        message: error instanceof Error ? error.message : 'Failed to process image upload'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleImageUploadError = (error: string | ImageUploadError) => {
-    // Normalize error to a string
-    const errorMessage = typeof error === 'string' 
-      ? error 
-      : error.message || 'An unknown error occurred during image upload';
-    
-    setImageUploadError(errorMessage);
+  const handleImageError = (error: string) => {
+    setImageUploadError({ message: error });
   };
 
-  const handleSubmitForm = async (data: Project) => {
-    const projectData: Project = {
-      ...data,
-      id: data.id || uuidv4(), // Ensure ID is always present
-      imageUrl: uploadedImageUrl,
-    };
-    onSubmit(projectData);
+  const handleImageSelect = async (imageUrl: string) => {
+    try {
+      setUploadedImageUrl(imageUrl);
+      setValue('imageUrl', imageUrl);
+      setCurrentImage(imageUrl);
+      setImageUploadError(null);
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      setImageUploadError({
+        message: error instanceof Error ? error.message : 'Failed to select image'
+      });
+    }
+  };
+
+  const onFormSubmit = async (data: Project) => {
+    try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('You must be logged in to create or edit projects');
+      }
+
+      // Generate a slug from the project title
+      const slug = createSlug(data.title);
+
+      // Create or update the project with user_id and slug
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .upsert({
+          id: data.id,
+          title: data.title,
+          description: data.description,
+          technologies: data.technologies,
+          image_url: data.imageUrl,
+          github_url: data.githubUrl,
+          live_url: data.liveUrl,
+          user_id: user.id,
+          slug
+        })
+        .select()
+        .single();
+
+      if (projectError) {
+        throw projectError;
+      }
+
+      // Then create the project image if there's a pending upload
+      if (pendingImageUpload) {
+        await createProjectImage({
+          project_id: projectData.id,
+          image_url: pendingImageUpload.publicUrl,
+          storage_path: pendingImageUpload.path
+        });
+        setPendingImageUpload(null);
+      }
+
+      // Call the parent's onSubmit with the complete data
+      onSubmit({
+        ...data,
+        id: projectData.id
+      });
+    } catch (error) {
+      console.error('Error submitting project:', error);
+      setImageUploadError({
+        message: error instanceof Error ? error.message : 'Failed to submit project'
+      });
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-6 p-6 bg-white rounded-xl shadow-md">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+      <div className="space-y-4">
+        <ImageUploadForm
+          projectId={projectId}
+          onUpload={handleImageUpload}
+          onError={handleImageError}
+          currentImage={currentImage}
+          isLoading={isSubmitting}
+        />
+        
+        {project?.id && (
+          <div className="mt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Project Images</h3>
+            <ProjectImageGallery
+              projectId={project.id}
+              onSelect={handleImageSelect}
+              selectedImageId={uploadedImageUrl || undefined}
+              onDelete={async (image) => {
+                if (uploadedImageUrl === image.image_url) {
+                  setUploadedImageUrl(null);
+                  setValue('imageUrl', '');
+                  setCurrentImage(null);
+                }
+              }}
+            />
+          </div>
+        )}
+        
+        {imageUploadError && (
+          <p className="text-red-500 text-sm mt-2">{imageUploadError.message}</p>
+        )}
+      </div>
+
+      {/* Form fields */}
+      <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+          <label className="block text-sm font-medium text-gray-700">Title</label>
           <input
             type="text"
-            {...register('title')}
-            placeholder="Enter project title"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {...register('title', { required: 'Title is required' })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
           {errors.title && (
             <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
@@ -99,124 +205,88 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSubmit, onCancel }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">GitHub URL</label>
+          <label className="block text-sm font-medium text-gray-700">Description</label>
+          <textarea
+            {...register('description', { required: 'Description is required' })}
+            rows={4}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+          {errors.description && (
+            <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Technologies</label>
+          <div className="space-y-2">
+            {fields.map((field, index) => (
+              <div key={field.id} className="flex gap-2">
+                <input
+                  {...register(`technologies.${index}`)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => append('')}
+              className="text-indigo-600 hover:text-indigo-800"
+            >
+              Add Technology
+            </button>
+          </div>
+          {errors.technologies && (
+            <p className="mt-1 text-sm text-red-600">{errors.technologies.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">GitHub URL</label>
           <input
-            type="text"
-            {...register('githubUrl')}
-            placeholder="https://github.com/username/project"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            type="url"
+            {...register('githubUrl', { required: 'GitHub URL is required' })}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
           {errors.githubUrl && (
             <p className="mt-1 text-sm text-red-600">{errors.githubUrl.message}</p>
           )}
         </div>
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-        <textarea
-          {...register('description')}
-          placeholder="Describe your project"
-          rows={4}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {errors.description && (
-          <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Technologies</label>
-        <div className="space-y-2">
-          {fields.map((field, index) => (
-            <div key={field.id} className="flex items-center space-x-2">
-              <input
-                type="text"
-                {...register(`technologies.${index}` as const)}
-                placeholder={`Technology ${index + 1}`}
-                className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {fields.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => append('')}
-            className="text-blue-500 hover:text-blue-700 mt-2"
-          >
-            + Add Technology
-          </button>
-          {errors.technologies && (
-            <p className="mt-1 text-sm text-red-600">{errors.technologies.message}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Project Image URL (Optional)</label>
+          <label className="block text-sm font-medium text-gray-700">Live URL (Optional)</label>
           <input
-            type="text"
-            {...register('imageUrl')}
-            placeholder="https://example.com/project-image.jpg"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            type="url"
+            {...register('liveUrl')}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
-          {errors.imageUrl && (
-            <p className="mt-1 text-sm text-red-600">{errors.imageUrl.message}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Or Upload Project Image</label>
-          <ImageUploader
-            name="projectImageUpload"
-            onChange={handleImageUpload}
-            onError={handleImageUploadError}
-            defaultImage={uploadedImageUrl}
-          />
-          {imageUploadError && (
-            <p className="mt-1 text-sm text-red-600">{imageUploadError}</p>
+          {errors.liveUrl && (
+            <p className="mt-1 text-sm text-red-600">{errors.liveUrl.message}</p>
           )}
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Live URL (Optional)</label>
-        <input
-          type="text"
-          {...register('liveUrl')}
-          placeholder="https://example.com"
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        {errors.liveUrl && (
-          <p className="mt-1 text-sm text-red-600">{errors.liveUrl.message}</p>
-        )}
-      </div>
-
-      <div className="flex justify-end space-x-4">
+      <div className="flex justify-end gap-4">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition"
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          disabled={isSubmitting}
         >
           Cancel
         </button>
         <button
           type="submit"
+          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           disabled={isSubmitting}
-          className={`px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 transition ${
-            isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
         >
-          {isSubmitting ? 'Saving...' : 'Save Project'}
+          {isSubmitting ? 'Saving...' : project?.id ? 'Update Project' : 'Create Project'}
         </button>
       </div>
     </form>

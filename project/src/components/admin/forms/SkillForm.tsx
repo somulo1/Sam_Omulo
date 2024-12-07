@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { Skill } from '../../../types/portfolio';
-import ImageUploader from '../ImageUpload';
+import ImageUploadForm from './ImageUploadForm'; 
 
 // Type for detailed error handling
+
 type ImageUploadError = {
   message: string;
   code?: string;
@@ -30,7 +31,7 @@ interface SkillFormProps {
 
 const SkillForm: React.FC<SkillFormProps> = ({ skill, onSubmit, onCancel }) => {
   const [uploadedIconUrl, setUploadedIconUrl] = useState<string>(skill?.icon || '');
-  const [iconUploadError, setIconUploadError] = useState<string | null>(null);
+  const [iconUploadError, setIconUploadError] = useState<ImageUploadError | null>(null);
 
   const { 
     register, 
@@ -53,20 +54,10 @@ const SkillForm: React.FC<SkillFormProps> = ({ skill, onSubmit, onCancel }) => {
     name: 'items' as FieldArrayPath<Skill>,
   });
 
-  const handleIconUpload = (url: string | null) => {
-    const newIconUrl = url || '';
-    setUploadedIconUrl(newIconUrl);
-    setValue('icon', newIconUrl);
+  const handleIconUpload = (imageUrl: string) => {
+    setUploadedIconUrl(imageUrl);
+    setValue('icon', imageUrl);
     setIconUploadError(null);
-  };
-
-  const handleIconUploadError = (error: string | ImageUploadError) => {
-    // Normalize error to a string
-    const errorMessage = typeof error === 'string' 
-      ? error 
-      : error.message || 'An unknown error occurred during icon upload';
-    
-    setIconUploadError(errorMessage);
   };
 
   const handleSubmitForm = async (data: Skill) => {
@@ -95,30 +86,31 @@ const SkillForm: React.FC<SkillFormProps> = ({ skill, onSubmit, onCancel }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Icon URL (Optional)</label>
-          <input
-            type="text"
-            {...register('icon')}
-            placeholder="https://example.com/icon.svg"
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <label className="block text-sm font-medium text-gray-700 mb-2">Skill Icon</label>
+          <ImageUploadForm
+            onSubmit={handleIconUpload}
+            onChange={(url: string) => {
+              setUploadedIconUrl(url);
+              setValue('icon', url);
+            }}
+            onError={(error: string | ImageUploadError) => {
+              if (typeof error === 'string') {
+                setIconUploadError({ message: error });
+              } else {
+                setIconUploadError(error as ImageUploadError);
+              }
+            }}
+            defaultImage={uploadedIconUrl || undefined}
           />
-          {errors.icon && (
-            <p className="mt-1 text-sm text-red-600">{errors.icon.message}</p>
+          {iconUploadError && (
+            <p className="mt-1 text-sm text-red-600">{iconUploadError.message}</p>
+          )}
+          {uploadedIconUrl && (
+            <p className="mt-2 text-sm text-gray-500">
+              Icon uploaded successfully
+            </p>
           )}
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Or Upload Icon</label>
-        <ImageUploader
-          name="skillIconUpload"
-          onChange={handleIconUpload}
-          onError={handleIconUploadError}
-          defaultImage={uploadedIconUrl}
-        />
-        {iconUploadError && (
-          <p className="mt-1 text-sm text-red-600">{iconUploadError}</p>
-        )}
       </div>
 
       <div>

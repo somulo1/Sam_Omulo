@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePortfolioStore } from '../../store/portfolioStore';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Skill } from '../../types/portfolio';
 import Modal from './modals/Modal';
 import SkillForm from './forms/SkillForm';
+import { fetchSkillImages } from '../../lib/imageUpload'; // Adjust the import path as necessary
 
 interface CardStyleProps {
   cardBackgroundColor?: string;
@@ -13,10 +14,17 @@ interface CardStyleProps {
   cardShadow?: string;
 }
 
+interface Image {
+  id: string;
+  file_path: string;
+  file_name: string;
+}
+
 const SkillsManager: React.FC = () => {
   const { skills, deleteSkill, addSkill, updateSkill } = usePortfolioStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<Skill | undefined>();
+  const [images, setImages] = useState<Image[]>([]);
 
   const handleEdit = (skill: Skill) => {
     setSelectedSkill(skill);
@@ -38,6 +46,17 @@ const SkillsManager: React.FC = () => {
     setIsModalOpen(false);
     setSelectedSkill(undefined);
   };
+
+  useEffect(() => {
+    const loadImages = async () => {
+      if (selectedSkill) {
+        const fetchedImages = await fetchSkillImages(selectedSkill.id);
+        setImages(fetchedImages);
+      }
+    };
+
+    loadImages();
+  }, [selectedSkill]); // Re-fetch when selectedSkill changes
 
   // Default card styles
   const defaultCardStyle: CardStyleProps = {
@@ -93,6 +112,14 @@ const SkillsManager: React.FC = () => {
                 <Trash2 size={20} />
               </button>
             </div>
+            {selectedSkill && selectedSkill.id === skill.id && (
+              <div>
+                <h2>Skill Images</h2>
+                {images.map((image) => (
+                  <img key={image.id} src={image.file_path} alt={image.file_name} />
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>

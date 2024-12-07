@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePortfolioStore } from '../../store/portfolioStore';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Project } from '../../types/portfolio';
 import Modal from './modals/Modal';
 import ProjectForm from './forms/ProjectForm';
+import { fetchProjectImages } from '../../lib/imageUpload'; // Adjust the import path as necessary
 
 const ProjectsManager: React.FC = () => {
   const { projects, deleteProject, addProject, updateProject } = usePortfolioStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
+  const [images, setImages] = useState([]);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      if (selectedProject) {
+        const fetchedImages = await fetchProjectImages(selectedProject.id);
+        setImages(fetchedImages);
+      }
+    };
+
+    loadImages();
+  }, [selectedProject]);
 
   const handleEdit = (project: Project) => {
     setSelectedProject(project);
@@ -96,6 +109,12 @@ const ProjectsManager: React.FC = () => {
         }}
         title={selectedProject ? 'Edit Project' : 'Add Project'}
       >
+        <div>
+          <h2>Project Images</h2>
+          {images.map(image => (
+            <img key={image.id} src={image.file_path} alt={image.file_name} />
+          ))}
+        </div>
         <ProjectForm
           project={selectedProject}
           onSubmit={handleSubmit}

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { v4 as uuidv4 } from 'uuid';
 
 // Allowed buckets
 const ALLOWED_BUCKETS = ['portfolio-images', 'profile-photos'];
@@ -7,13 +8,19 @@ const ALLOWED_BUCKETS = ['portfolio-images', 'profile-photos'];
 const BUCKET_CONFIGS = {
   'portfolio-images': {
     maxSize: 10 * 1024 * 1024, // 10MB
-    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
   },
   'profile-photos': {
     maxSize: 5 * 1024 * 1024, // 5MB
-    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
   }
 };
+
+interface UploadResult {
+  publicUrl: string;
+  path: string;
+  error?: string;
+}
 
 // Validate file type and size
 const validateFile = (file: File, bucketName: string = 'portfolio-images'): boolean => {
@@ -37,101 +44,182 @@ const validateFile = (file: File, bucketName: string = 'portfolio-images'): bool
   return true;
 };
 
+const getStoragePath = (bucket: string, fileName: string) => `${bucket}/${fileName}`;
+
+// Upload image to storage and create database record
 export const uploadImage = async (
-  file: File, 
-  bucket: string = 'portfolio-images', 
-  customFileName?: string
-) => {
-  // Validate bucket
-  if (!ALLOWED_BUCKETS.includes(bucket)) {
-    throw new Error(`Invalid bucket. Allowed buckets: ${ALLOWED_BUCKETS.join(', ')}`);
-  }
-
-  // Ensure user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (authError || !user) {
-    console.error('Authentication required for image upload');
-    throw new Error('Authentication required');
-  }
-
-  // Validate file
-  if (!validateFile(file, bucket)) {
-    throw new Error('Invalid file');
-  }
-
+  file: File,
+  projectId: string,
+  bucket: string = 'portfolio-images'
+): Promise<UploadResult> => {
   try {
-    // Generate unique filename with the original file extension
+    if (!validateFile(file, bucket)) {
+      return {
+        publicUrl: '',
+        path: '',
+        error: 'Invalid file type or size'
+      };
+    }
+
     const fileExt = file.name.split('.').pop();
-    if (!fileExt) throw new Error('File extension is missing');
-    
-    const fileName = customFileName || `${user.id}_${Date.now()}.${fileExt}`;
+    const fileName = `${uuidv4()}_${Date.now()}.${fileExt}`;
     const filePath = `${bucket}/${fileName}`;
 
-    // Upload to Supabase storage
-    const { data, error } = await supabase.storage
+    // Upload to storage
+    const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-        contentType: file.type
-      });
+      .upload(filePath, file);
 
-    if (error) {
-      console.error(`Supabase ${bucket} storage upload error:`, error);
-      throw error;
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      return {
+        publicUrl: '',
+        path: '',
+        error: uploadError.message
+      };
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(filePath);
 
-    return {
-      publicUrl: urlData.publicUrl,
-      path: filePath,
-      bucket: bucket
-    };
+    // Create database record
+    const { data: imageData, error: dbError } = await supabase
+      .from('project_images')
+      .insert({
+        project_id: projectId,
+        image_url: publicUrl,
+        storage_path: filePath
+      })
+      .select('id, project_id, image_url, storage_path, created_at, updated_at')
+      .single();
 
+    if (dbError) {
+      console.error('Error creating database record:', dbError);
+      // Clean up storage if database insert fails
+      await supabase.storage.from(bucket).remove([filePath]);
+      return {
+        publicUrl: '',
+        path: '',
+        error: dbError.message
+      };
+    }
+
+    return {
+      publicUrl,
+      path: filePath,
+      error: undefined
+    };
   } catch (error) {
-    console.error(`Comprehensive ${bucket} image upload error:`, error);
-    throw error;
+    console.error('Error in uploadImage:', error);
+    return {
+      publicUrl: '',
+      path: '',
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
   }
 };
 
-export const deleteImage = async (
-  url: string, 
-  bucket: string = 'portfolio-images'
-) => {
-  // Validate bucket
-  if (!ALLOWED_BUCKETS.includes(bucket)) {
-    throw new Error(`Invalid bucket. Allowed buckets: ${ALLOWED_BUCKETS.join(', ')}`);
-  }
-
-  // Ensure user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
-  if (authError || !user) {
-    console.error('Authentication required for image deletion');
-    throw new Error('Authentication required');
-  }
-
+export const deleteImage = async (bucket: string, path: string): Promise<void> => {
   try {
-    const path = url.split('/').pop();
-    if (!path) throw new Error('Invalid image URL');
+    // Validate bucket
+    if (!ALLOWED_BUCKETS.includes(bucket)) {
+      throw new Error(`Invalid bucket. Allowed buckets: ${ALLOWED_BUCKETS.join(', ')}`);
+    }
 
     const { error } = await supabase.storage
       .from(bucket)
       .remove([path]);
 
     if (error) {
-      console.error(`${bucket} image deletion error:`, error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Delete error:', error);
+    throw error;
+  }
+};
+
+export const getImageUrl = (bucket: string, path: string): string => {
+  // Validate bucket
+  if (!ALLOWED_BUCKETS.includes(bucket)) {
+    throw new Error(`Invalid bucket. Allowed buckets: ${ALLOWED_BUCKETS.join(', ')}`);
+  }
+
+  const { data } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(path);
+  
+  return data?.publicUrl || '';
+};
+
+// Fetch project images
+export const fetchProjectImages = async (projectId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('project_images')
+      .select('id, project_id, image_url, storage_path, created_at, updated_at')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching project images:', error);
       throw error;
     }
 
-    return true;
+    if (!data) return [];
+
+    // Map the data and add the public URL for each image
+    return data.map(image => ({
+      ...image,
+      url: image.image_url || getImageUrl('portfolio-images', image.storage_path)
+    }));
   } catch (error) {
-    console.error(`Comprehensive ${bucket} image deletion error:`, error);
-    throw error;
+    console.error('Error in fetchProjectImages:', error);
+    return [];
+  }
+};
+
+// Fetch skill images
+export const fetchSkillImages = async (skillId: string) => {
+  const { data, error } = await supabase
+    .from('skill_images')
+    .select('*')
+    .eq('skill_id', skillId);
+
+  if (error) {
+    console.error('Error fetching skill images:', error);
+    return [];
+  }
+
+  return data;
+};
+
+// Display project images
+export const displayProjectImages = async (projectId: string) => {
+  const images = await fetchProjectImages(projectId);
+  const container = document.getElementById('project-images-container');
+  if (container) {
+    container.innerHTML = ''; // Clear existing images
+    images.forEach(image => {
+      const imgElement = document.createElement('img');
+      imgElement.src = image.url; // Use the URL to display the image
+      container.appendChild(imgElement);
+    });
+  }
+};
+
+// Display skill images
+export const displaySkillImages = async (skillId: string) => {
+  const images = await fetchSkillImages(skillId);
+  const container = document.getElementById('skill-images-container');
+  if (container) {
+    container.innerHTML = ''; // Clear existing images
+    images.forEach(image => {
+      const imgElement = document.createElement('img');
+      imgElement.src = getImageUrl('portfolio-images', image.storage_path); // Use the URL to display the image
+      container.appendChild(imgElement);
+    });
   }
 };

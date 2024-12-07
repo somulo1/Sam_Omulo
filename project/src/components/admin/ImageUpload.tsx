@@ -1,39 +1,36 @@
-
 import React, { useState } from 'react';
-import { uploadImage, deleteImage } from '../../lib/imageUpload';
+import { uploadImage, deleteImage, fetchProjectImages } from '../../lib/imageUpload';
 
 interface ImageUploaderProps {
+  projectId: string;
+  setImages: (images: any[]) => void;
   name: string;
   onChange: (imageUrl: string | null) => void;
-  onError: (error: string | { message: string; code?: string }) => void;
+  onError?: (error: string | { message: string; code?: string }) => void;
   defaultImage?: string;
   bucket?: string;
+  onSubmit?: (imageUrl: string) => void;
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
+  projectId,
+  setImages,
   name,
   onChange,
-  onError,
-  defaultImage,
+  onError = () => {},
+  defaultImage = '',
   bucket = 'portfolio-images',
+  onSubmit,
 }) => {
   const [imagePreview, setImagePreview] = useState<string | undefined>(defaultImage);
   const [error, setError] = useState<string | undefined>(undefined);
   const [isUploading, setIsUploading] = useState(false);
+  const [file, setFile] = useState(null);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
-
-    const fileType = file.type.split('/')[0];
-
-    if (fileType !== 'image') {
-      const errorMsg = 'Only image files are allowed.';
-      setError(errorMsg);
-      onError({ message: errorMsg, code: 'INVALID_FILE_TYPE' });
-      return;
-    }
 
     if (file.size > 5 * 1024 * 1024) {
       const errorMsg = 'File size must be less than 5MB.';
@@ -47,15 +44,28 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       setError(undefined);
       onError('');
 
-      // Delete previous image if exists
-      if (defaultImage) {
-        await deleteImage(defaultImage, bucket);
+      // Delete previous image if exists and is not empty
+      if (defaultImage && defaultImage !== '' && typeof defaultImage === 'string') {
+        try {
+          await deleteImage(defaultImage, bucket);
+        } catch (deleteErr) {
+          console.warn('Failed to delete previous image:', deleteErr);
+        }
       }
 
       // Upload new image
-      const imageUrl = await uploadImage(file, bucket);
+      const imageUrl = await uploadImage(file as File, projectId, bucket);
       setImagePreview(imageUrl);
       onChange(imageUrl);
+
+      // Fetch updated images
+      const fetchedImages = await fetchProjectImages(projectId);
+      setImages(fetchedImages);
+
+      // Call onSubmit if it exists
+      if (onSubmit) {
+        onSubmit(imageUrl);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to upload image';
       const errorObj = { 
@@ -66,6 +76,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       onError(errorObj);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (file) {
+      await uploadImage(file, projectId, bucket);
+      const fetchedImages = await fetchProjectImages(projectId);
+      setImages(fetchedImages);
     }
   };
 
@@ -98,13 +116,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
         <input
           type="file"
           name={name}
-          accept="image/*"
+          accept="*"
           onChange={handleFileChange}
           disabled={isUploading}
           className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
+      <button onClick={handleUpload}>Upload Image</button>
     </div>
   );
 };

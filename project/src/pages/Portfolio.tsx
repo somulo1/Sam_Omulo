@@ -1,9 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolioStore } from '../store/portfolioStore';
 import { uploadFile, getPublicUrl } from '../utils/supabase';
 import { trackEvent } from '../utils/analytics';
 import useAuthStore from '../stores/authStore';
+import Image from '../components/common/Image';
+import { fetchProjectImages } from '../lib/imageUpload';
 
 const Portfolio: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +15,7 @@ const Portfolio: React.FC = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [images, setImages] = useState([]);
 
   const triggerFileInput = () => {
     if (!isAuthenticated) {
@@ -66,18 +69,14 @@ const Portfolio: React.FC = () => {
     updateAboutContent({ title, subtitle, description });
   };
 
-  function setCookie(name: string, value: string, days?: number) {
-    let expires = "";
-    if (days) {
-      const date = new Date();
-      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-      expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=None; Secure";
-  }
+  useEffect(() => {
+    const loadImages = async () => {
+      const fetchedImages = await fetchProjectImages(projects[0].id); // Assuming the first project's ID
+      setImages(fetchedImages);
+    };
 
-  // Example usage of setting a cookie
-  setCookie("__vercel_live_token", "your_token_value", 7); // Set cookie for 7 days
+    loadImages();
+  }, [projects]);
 
   return (
     <div className="min-h-screen bg-[#081b29] text-[#ededed]">
@@ -242,7 +241,12 @@ const Portfolio: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {projects.map((project) => (
             <div key={project.id} className="bg-[#081b29] rounded-lg overflow-hidden hover:border-[#00abf0] border-2 border-transparent transition-all transform hover:scale-105">
-              <img src={project.imageUrl} alt={project.title} className="w-full h-48 object-cover" />
+              <Image 
+                src={project.imageUrl} 
+                alt={project.title}
+                className="w-full h-48 object-cover"
+                onLoadError={(error) => console.error('Failed to load project image:', error)}
+              />
               <div className="p-6">
                 <h3 className="text-3xl font-bold mb-4">{project.title}</h3>
                 <p className="text-lg">{project.description}</p>
@@ -267,6 +271,12 @@ const Portfolio: React.FC = () => {
                 </div>
               </div>
             </div>
+          ))}
+        </div>
+        <div>
+          <h2>Portfolio Images</h2>
+          {images.map(image => (
+            <img key={image.id} src={image.file_path} alt={image.file_name} />
           ))}
         </div>
       </section>

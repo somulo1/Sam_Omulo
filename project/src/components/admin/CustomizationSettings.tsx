@@ -6,9 +6,10 @@ import { AdminComponentProps } from '../../types/admin';
 interface CustomizationSettingsProps extends AdminComponentProps {
   settings: AdminSettings;
   updateSettings: (updatedSettings: Partial<AdminSettings>) => void;
+  onAddNew: (type: "project" | "skill" | "service") => void;
 }
 
-export function CustomizationSettings({ settings, updateSettings }: CustomizationSettingsProps) {
+export function CustomizationSettings({ settings, updateSettings, onAddNew }: CustomizationSettingsProps) {
   const [localSettings, setLocalSettings] = useState({
     primaryColor: settings.customization?.primaryColor || '#3B82F6',
     secondaryColor: settings.customization?.secondaryColor || '#10B981',
