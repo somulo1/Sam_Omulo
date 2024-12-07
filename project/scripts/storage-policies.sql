@@ -1,6 +1,12 @@
 -- Enable Row Level Security for storage objects
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
+-- Create a policy for authenticated users to allow uploads
+CREATE POLICY "Allow authenticated users to upload"
+ON storage.objects
+FOR INSERT
+USING (auth.role() = 'authenticated');
+
 -- Policy for profile-photos bucket
 -- Allow authenticated users to upload, read, update, and delete their own files
 CREATE OR REPLACE POLICY "Users can upload their own profile photos" 

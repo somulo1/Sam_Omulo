@@ -109,10 +109,28 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSubmit, onCancel }
         throw new Error('You must be logged in to create or edit projects');
       }
 
-      // Generate a slug from the project title
-      const slug = createSlug(data.title);
+      // Generate a unique slug from the project title
+      let slug = createSlug(data.title);
+      let slugExists = true;
+      let attempt = 1;
 
-      // Create or update the project with user_id and slug
+      // Check for slug uniqueness and append a number if needed
+      while (slugExists) {
+        const { data: existingProject } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('slug', slug)
+          .single();
+
+        if (!existingProject) {
+          slugExists = false;
+        } else {
+          slug = `${createSlug(data.title)}-${attempt}`;
+          attempt += 1;
+        }
+      }
+
+      // Create or update the project with user_id and unique slug
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
         .upsert({
