@@ -81,7 +81,7 @@ const ContactManager: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <Github className="text-blue-500" />
-              <a href={contactInfo.socialLinks.github} target="_blank" rel="noopener noreferrer"
+              <a href={contactInfo.socialLinks.github_url} target="_blank" rel="noopener noreferrer"
                  className="text-blue-500 hover:underline">
                 GitHub Profile
               </a>
@@ -150,8 +150,8 @@ const ContactManager: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700">GitHub URL</label>
             <input
               type="url"
-              name="socialLinks.github"
-              value={formData.socialLinks.github}
+              name="socialLinks.github_url"
+              value={formData.socialLinks.github_url}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />

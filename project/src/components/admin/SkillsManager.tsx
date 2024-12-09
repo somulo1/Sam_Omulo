@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { usePortfolioStore } from '../../store/portfolioStore';
+import { supabase } from '../../lib/supabaseClient';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Skill } from '../../types/portfolio';
 import Modal from './modals/Modal';
 import SkillForm from './forms/SkillForm';
-import { fetchSkillImages } from '../../lib/imageUpload'; // Adjust the import path as necessary
 
 interface CardStyleProps {
   cardBackgroundColor?: string;
@@ -24,7 +24,40 @@ const SkillsManager: React.FC = () => {
   const { skills, deleteSkill, addSkill, updateSkill } = usePortfolioStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<Skill | undefined>();
-  const [images, setImages] = useState<Image[]>([]);
+  const [images, setImages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadImages = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('skills') // Use the actual skills table name
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching images:', error);
+    } else {
+      setImages(data); // Assuming data contains the images
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadImages(); // Load images on component mount
+
+    const subscription = supabase
+      .from('skills') // Use the actual skills table name
+      .on('INSERT', payload => {
+        loadImages(); // Re-fetch images on new insert
+      })
+      .on('DELETE', payload => {
+        loadImages(); // Re-fetch images on delete
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeSubscription(subscription); // Clean up subscription on unmount
+    };
+  }, []); // Run once on mount
 
   const handleEdit = (skill: Skill) => {
     setSelectedSkill(skill);
@@ -46,17 +79,6 @@ const SkillsManager: React.FC = () => {
     setIsModalOpen(false);
     setSelectedSkill(undefined);
   };
-
-  useEffect(() => {
-    const loadImages = async () => {
-      if (selectedSkill) {
-        const fetchedImages = await fetchSkillImages(selectedSkill.id);
-        setImages(fetchedImages);
-      }
-    };
-
-    loadImages();
-  }, [selectedSkill]); // Re-fetch when selectedSkill changes
 
   // Default card styles
   const defaultCardStyle: CardStyleProps = {
@@ -91,6 +113,7 @@ const SkillsManager: React.FC = () => {
           >
             <div className="text-4xl">{skill.icon}</div>
             <h3 className="text-xl font-semibold">{skill.category}</h3>
+            {skill.imageUrl && <img src={skill.imageUrl} alt={skill.category} className="skill-image" />}
             <ul className="list-disc list-inside space-y-2">
               {skill.items.map((item, index) => (
                 <li key={index} className="text-gray-600">
@@ -115,9 +138,13 @@ const SkillsManager: React.FC = () => {
             {selectedSkill && selectedSkill.id === skill.id && (
               <div>
                 <h2>Skill Images</h2>
-                {images.map((image) => (
-                  <img key={image.id} src={image.file_path} alt={image.file_name} />
-                ))}
+                {loading ? (
+                  <p>Loading...</p>
+                ) : (
+                  images.map((image) => (
+                    <img key={image.id} src={image.file_path} alt={image.file_name} />
+                  ))
+                )}
               </div>
             )}
           </div>

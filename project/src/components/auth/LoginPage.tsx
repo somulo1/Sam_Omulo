@@ -64,63 +64,36 @@ const LoginPage = () => {
             Admin Login
           </h2>
         </div>
-        {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">{error}</h3>
-              </div>
-            </div>
-          </div>
-        )}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(handleLogin)}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                {...register('email')}
-                id="email"
-                type="email"
-                autoComplete="email"
-                disabled={isSubmitting}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm disabled:bg-gray-100"
-                placeholder="Email address"
-              />
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
-              )}
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                {...register('password')}
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                disabled={isSubmitting}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm disabled:bg-gray-100"
-                placeholder="Password"
-              />
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
+        <div className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+          <h2>Login</h2>
+          <form onSubmit={handleSubmit(handleLogin)}>
+            <input 
+              type="email" 
+              placeholder="Email" 
+              {...register('email')} 
+              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+            />
+            {errors.email && <span className="error-message">{errors.email.message}</span>}
+            
+            <input 
+              type="password" 
+              placeholder="Password" 
+              {...register('password')} 
+              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+            />
+            {errors.password && <span className="error-message">{errors.password.message}</span>}
+            
+            {error && <span className="error-message">{error}</span>}
+            
+            <button 
+              type="submit" 
               disabled={isSubmitting}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400"
             >
               {isSubmitting ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

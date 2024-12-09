@@ -23,7 +23,7 @@ const projectSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   technologies: z.array(z.string().min(1, 'Technology cannot be empty')).min(1, 'At least one technology is required'),
   imageUrl: z.string().url('Invalid image URL').default(''),
-  githubUrl: z.string().url('Invalid GitHub URL'),
+  github_url: z.string().url('Invalid GitHub URL'),
   liveUrl: z.string().url('Invalid live URL').optional(),
 });
 
@@ -51,7 +51,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSubmit, onCancel }
       description: project?.description || '',
       technologies: project?.technologies || [],
       imageUrl: project?.imageUrl || '',
-      githubUrl: project?.githubUrl || '',
+      github_url: project?.github_url || '',
       liveUrl: project?.liveUrl || ''
     }
   });
@@ -109,18 +109,16 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSubmit, onCancel }
         throw new Error('You must be logged in to create or edit projects');
       }
 
-      const projectData = data;
+      const projectData = {
+        ...data,
+        user_id: user.id,
+        slug: await createSlug(data.title),
+      };
 
       // Create the project in Supabase
       const { data: createdProject, error: projectError } = await supabase
         .from('projects')
-        .insert([
-          {
-            ...projectData,
-            slug: await createSlug(projectData.title),
-            user_id: user.id
-          }
-        ])
+        .insert([projectData])
         .select()
         .single();
 
@@ -255,11 +253,11 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSubmit, onCancel }
           <label className="block text-sm font-medium text-gray-700">GitHub URL</label>
           <input
             type="url"
-            {...register('githubUrl', { required: 'GitHub URL is required' })}
+            {...register('github_url', { required: 'GitHub URL is required' })}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
-          {errors.githubUrl && (
-            <p className="mt-1 text-sm text-red-600">{errors.githubUrl.message}</p>
+          {errors.github_url && (
+            <p className="mt-1 text-sm text-red-600">{errors.github_url.message}</p>
           )}
         </div>
 

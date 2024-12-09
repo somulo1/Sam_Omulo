@@ -196,8 +196,8 @@ const SettingsManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700">GitHub URL</label>
                 <input
                   type="url"
-                  name="socialLinks.github"
-                  value={formData.socialLinks.github}
+                  name="socialLinks.github_url"
+                  value={formData.socialLinks.github_url}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 />

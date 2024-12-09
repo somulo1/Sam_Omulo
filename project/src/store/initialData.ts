@@ -2,19 +2,19 @@ import { Project, Service, Skill, ContactInfo } from '../types/portfolio';
 
 export const initialProjects: Project[] = [
   {
-    id: '1',
+    id: '550e8400-e29b-41d4-a716-446655440000',
     title: 'ASCII Art Web',
     description: 'A web application for converting text to ASCII art with multiple banner styles.',
     technologies: ['Go', 'HTML', 'CSS', 'JavaScript'],
     imageUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c',
-    githubUrl: 'https://github.com/somulo1/ascii-art-web',
+    github_url: 'https://github.com/somulo1/ascii-art-web',
     liveUrl: 'https://ascii-art-web.netlify.app'
   }
 ];
 
 export const initialServices: Service[] = [
   {
-    id: '1',
+    id: '550e8400-e29b-41d4-a716-446655440001',
     title: 'Web Development',
     description: 'Creating responsive, modern websites using the latest technologies and best practices.',
     icon: 'bx bx-code-alt',
@@ -27,7 +27,7 @@ export const initialServices: Service[] = [
     ]
   },
   {
-    id: '2',
+    id: '550e8400-e29b-41d4-a716-446655440002',
     title: 'Cybersecurity',
     description: 'Protecting networks and data with proactive security measures.',
     icon: 'bx bx-shield',
@@ -40,7 +40,7 @@ export const initialServices: Service[] = [
     ]
   },
   {
-    id: '3',
+    id: '550e8400-e29b-41d4-a716-446655440003',
     title: 'Full-Stack Development',
     description: 'Building scalable, efficient, and secure applications.',
     icon: 'bx bx-layer',
@@ -55,7 +55,7 @@ export const initialServices: Service[] = [
 
 export const initialSkills: Skill[] = [
   {
-    id: '1',
+    id: '550e8400-e29b-41d4-a716-446655440004',
     category: 'Web Development',
     icon: 'bx bx-code-alt',
     items: [
@@ -67,7 +67,7 @@ export const initialSkills: Skill[] = [
     ]
   },
   {
-    id: '2',
+    id: '550e8400-e29b-41d4-a716-446655440005',
     category: 'Cybersecurity',
     icon: 'bx bx-shield',
     items: [

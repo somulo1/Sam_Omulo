@@ -157,6 +157,7 @@ export const getImageUrl = (bucket: string, path: string): string => {
 // Fetch project images
 export const fetchProjectImages = async (projectId: string) => {
   try {
+    console.log('Fetching images for project ID:', projectId);
     const { data, error } = await supabase
       .from('project_images')
       .select('id, project_id, image_url, storage_path, created_at, updated_at')

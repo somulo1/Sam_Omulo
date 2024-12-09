@@ -1,21 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolioStore } from '../store/portfolioStore';
-import { uploadFile, getPublicUrl } from '../utils/supabase';
-import { trackEvent } from '../utils/analytics';
 import useAuthStore from '../stores/authStore';
 import Image from '../components/common/Image';
 import { fetchProjectImages } from '../lib/imageUpload';
 
+// Define the ImageType interface
+interface ImageType {
+    id: string;
+    file_path: string;
+    file_name: string;
+}
+
 const Portfolio: React.FC = () => {
   const navigate = useNavigate();
-  const { projects, services, skills, contactInfo, profilePhoto, updateProfilePhoto, aboutContent, certifications, educationExperience, updateAboutContent } = usePortfolioStore();
+  const { projects, services, skills, contactInfo, profilePhoto, aboutContent, certifications, educationExperiences, workExperiences, updateAboutContent } = usePortfolioStore();
   const { isAuthenticated } = useAuthStore();
   const [isHovering, setIsHovering] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState<ImageType[]>([]);
+  const [subtitle, setSubtitle] = useState(aboutContent.subtitle);
+  const [description, setDescription] = useState(aboutContent.description);
 
   const triggerFileInput = () => {
     if (!isAuthenticated) {
@@ -24,7 +31,24 @@ const Portfolio: React.FC = () => {
     }
     fileInputRef.current?.click();
   };
-
+  const handleImageFetch = async (projectId: string) => {
+    try {
+      const fetchedImages = await fetchProjectImages(projectId);
+      // Handle fetched images...
+    } catch (error) {
+      setUploadError('Failed to fetch images. Please try again.');
+    }
+  };
+  
+  // In your render method or return statement
+  {uploadError && <div className="error-message">{uploadError}</div>}
+<div 
+  onMouseEnter={() => setIsHovering(true)} 
+  onMouseLeave={() => setIsHovering(false)} 
+  style={{ backgroundColor: isHovering ? 'lightblue' : 'white' }}
+>
+  {/* Your content here */}
+</div>
   const handleLoginClick = () => {
     navigate('/login');
   };
@@ -61,20 +85,53 @@ const Portfolio: React.FC = () => {
     }
   };
 
-  const [title, setTitle] = useState(aboutContent.title);
-  const [subtitle, setSubtitle] = useState(aboutContent.subtitle);
-  const [description, setDescription] = useState(aboutContent.description);
-
   const handleSaveChanges = () => {
-    updateAboutContent({ title, subtitle, description });
+    updateAboutContent({ title: aboutContent.title, subtitle, description });
+  };
+
+  const loadImages = async () => {
+    // Check if initialProjects is defined and has items
+    if (!projects || projects.length === 0) {
+      console.error('No projects available or initialProjects is undefined');
+      return;
+    }
+
+    const projectId = projects[0].id; // Assuming the first project's ID
+
+    // Validate the project ID format
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+      console.error('Invalid project ID:', projectId);
+      return;
+    }
+
+    try {
+      console.log('Fetching images for project ID:', projectId);
+      const fetchedImages = await fetchProjectImages(projectId);
+      // Transform fetchedImages to match ImageType if necessary
+      const formattedImages: ImageType[] = fetchedImages.map(image => ({
+        id: image.id,
+        file_path: image.storage_path, // Adjust as necessary
+        file_name: image.image_url, // Adjust as necessary
+      }));
+
+      setImages(formattedImages);
+    } catch (error) {
+      console.error('Error fetching project images:', error);
+      // Optionally, handle the error by displaying a message to the user
+    }
   };
 
   useEffect(() => {
-    const loadImages = async () => {
-      const fetchedImages = await fetchProjectImages(projects[0].id); // Assuming the first project's ID
-      setImages(fetchedImages);
-    };
+    setSubtitle(aboutContent.subtitle);
+    setDescription(aboutContent.description);
+  }, [aboutContent]);
 
+  useEffect(() => {
+    // Update the component state or UI when education or work experiences change
+    // This is a placeholder for any logic you might want to implement
+  }, [educationExperiences, workExperiences]);
+
+  useEffect(() => {
     loadImages();
   }, [projects]);
 
@@ -129,6 +186,11 @@ const Portfolio: React.FC = () => {
             alt="Profile" 
             className="w-full h-full object-cover transition-opacity duration-300"
           />
+          {profilePhoto ? (
+            <img src={profilePhoto.file_path} alt="Profile Photo" />
+          ) : (
+            <img src="defaultProfilePhotoPath.jpg" alt="Default Profile Photo" />
+          )}
         </div>
         <div className="max-w-[75%] md:max-w-[75vw] flex flex-col items-center text-center space-y-2">
           <h1 className="text-5xl font-bold">Hi, I'm Samuel</h1>
@@ -149,41 +211,74 @@ const Portfolio: React.FC = () => {
 
       {/* About Section */}
       <section className="about bg-[#112e42] py-20 px-8 space-y-8" id="about">
-        <div className="about-content space-y-6">
-          <h2 className="heading text-4xl font-bold text-center">{aboutContent.title}</h2>
-          <h3 className="text-2xl text-center">{aboutContent.subtitle}</h3>
-          <p className="text-lg text-center">{aboutContent.description}</p>
+        <div className="about-content space-y-6 text-center">
+          <h2 className="heading text-4xl font-bold text-[#00abf0]">{aboutContent.title}</h2>
+          <div className="about-section">
+            <h2 className="text-3xl font-bold text-[#00abf0] mb-4">About Me</h2>
+            <p className="text-lg mb-2 text-white">{subtitle}</p>
+            <p className="text-base text-white mb-4 text-center mx-auto max-w-[75%]">{description}</p>
+          </div>
           <div className="about-grid grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* First Column: Certifications */}
-            <div className="about-certifications bg-[#1e293b] p-6 rounded-lg shadow-lg border-l-4 border-[#00abf0]">
+            <div className="about-certifications bg-[#081b29] p-6 rounded-lg shadow-lg border-l-4 border-[#00abf0]">
               <h3 className="text-3xl font-semibold text-[#00abf0]">Certifications</h3>
-              <div className="timeline">
-                {certifications.map((cert, index) => (
-                  <div key={index} className="timeline-item">
-                    <span className="date text-[#00abf0]">{cert.date}</span>
-                    <h4 className="text-lg font-bold">{cert.title}</h4>
-                    <p className="text-gray-300">{cert.institution}</p>
-                    <ul className="list-disc pl-5">
-                      {cert.details.map((detail, i) => <li key={i}>{detail}</li>)}
-                    </ul>
-                  </div>
-                ))}
+              <div className="timeline relative">
+                <div className="absolute left-0 top-0 h-full border-l-4 border-[#00abf0]"></div>
+                <div className="timeline">
+                  {certifications.map((cert, index) => (
+                    <div key={index} className="timeline-item flex items-center text-left relative mb-8">
+                      <div className="w-4 h-4 bg-[#00abf0] rounded-full absolute left-[-8px] top-1/2 transform -translate-y-1/2 border-2 border-white"></div>
+                      <div className="ml-8">
+                        <span className="date text-[#00abf0] mr-4 relative z-10">{cert.date}</span>
+                        <h4 className="text-lg font-bold relative z-10">{cert.title}</h4>
+                        <p className="text-gray-300 relative z-10">{cert.institution}</p>
+                        <ul className="list-disc pl-5">
+                          {cert.details.map((detail: string, i: number) => <li key={i}>{detail}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
             {/* Second Column: Education & Experience */}
-            <div className="about-experience bg-[#1e293b] p-6 rounded-lg shadow-lg border-l-4 border-[#00abf0]">
+            <div className="about-experience bg-[#081b29] p-6 rounded-lg shadow-lg border-l-4 border-[#00abf0]">
               <h3 className="text-3xl font-semibold text-[#00abf0]">Education &amp; Experience</h3>
-              <div className="timeline">
-                {educationExperience.map((edu, index) => (
-                  <div key={index} className="timeline-item">
-                    <span className="date text-[#00abf0]">{edu.date}</span>
-                    <h4 className="text-lg font-bold">{edu.title}</h4>
-                    <p className="text-gray-300">{edu.institution}</p>
-                    <ul className="list-disc pl-5">
-                      {edu.details.map((detail, i) => <li key={i}>{detail}</li>)}
-                    </ul>
-                  </div>
-                ))}
+              <div className="education-experience-section relative">
+                <div className="absolute left-0 top-0 h-full border-l-4 border-[#00abf0]"></div>
+                <h4 className="text-2xl font-bold text-white mb-2">Work & Experience</h4>
+                {workExperiences.length > 0 ? (
+                  workExperiences.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((work, index) => (
+                    <div key={index} className="timeline-item flex items-center text-left relative mb-8">
+                      <div className="w-4 h-4 bg-[#00abf0] rounded-full absolute left-[-8px] top-1/2 transform -translate-y-1/2 border-2 border-white"></div>
+                      <div className="ml-8">
+                        <span className="date text-[#00abf0] mr-4 relative z-10">{work.date}</span>
+                        <h5 className="text-lg font-bold relative z-10">{work.position}</h5>
+                        <p className="text-gray-300 relative z-10">{work.company}</p>
+                        <ul className="list-disc pl-5">
+                          {work.responsibilities.map((resp, i) => <li key={i}>{resp}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No work experience available.</p>
+                )}
+                <h4 className="text-2xl font-bold text-white mb-2">Education</h4>
+                {educationExperiences.length > 0 ? (
+                  educationExperiences.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((edu, index) => (
+                    <div key={index} className="timeline-item flex items-center text-left relative mb-8">
+                      <div className="w-4 h-4 bg-[#00abf0] rounded-full absolute left-[-8px] top-1/2 transform -translate-y-1/2 border-2 border-white"></div>
+                      <div className="ml-8">
+                        <span className="date text-[#00abf0] mr-4 relative z-10">{edu.date}</span>
+                        <h5 className="text-lg font-bold relative z-10">{edu.title}</h5>
+                        <p className="text-gray-300 relative z-10">{edu.institution}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No education experience available.</p>
+                )}
               </div>
             </div>
           </div>
@@ -258,7 +353,7 @@ const Portfolio: React.FC = () => {
                   ))}
                 </div>
                 <div className="flex gap-4">
-                  <a href={project.githubUrl} target="_blank" rel="noopener noreferrer" 
+                  <a href={project.github_url} target="_blank" rel="noopener noreferrer" 
                      className="flex-1 text-center px-4 py-2 bg-[#00abf0] text-[#081b29] rounded-lg hover:bg-transparent hover:text-[#00abf0] border-2 border-[#00abf0] transition-colors">
                     View Code
                   </a>

@@ -32,6 +32,7 @@ interface SkillFormProps {
 const SkillForm: React.FC<SkillFormProps> = ({ skill, onSubmit, onCancel }) => {
   const [uploadedIconUrl, setUploadedIconUrl] = useState<string>(skill?.icon || '');
   const [iconUploadError, setIconUploadError] = useState<ImageUploadError | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const { 
     register, 
@@ -60,13 +61,17 @@ const SkillForm: React.FC<SkillFormProps> = ({ skill, onSubmit, onCancel }) => {
     setIconUploadError(null);
   };
 
+  const handleUpload = (publicUrl: string, path: string) => {
+    console.log('Upload path:', path);
+    console.log('Upload path:', path); // Added console log
+    setUploadedIconUrl(publicUrl);
+    setImageUrl(publicUrl);
+    // Additional logic for handling upload success can be added here
+};
+
   const handleSubmitForm = async (data: Skill) => {
-    const skillData: Skill = {
-      ...data,
-      id: data.id || uuidv4(), // Ensure ID is always present
-      icon: uploadedIconUrl,
-    };
-    onSubmit(skillData);
+    const formData = { ...data, imageUrl };
+    onSubmit(formData);
   };
 
   return (
@@ -89,6 +94,7 @@ const SkillForm: React.FC<SkillFormProps> = ({ skill, onSubmit, onCancel }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">Skill Icon</label>
           <ImageUploadForm
             onSubmit={handleIconUpload}
+            onUpload={handleUpload}
             onChange={(url: string) => {
               setUploadedIconUrl(url);
               setValue('icon', url);

@@ -10,6 +10,9 @@ interface ImageUploadFormProps {
   onError: (error: string) => void;
   currentImage?: string | null;
   isLoading?: boolean;
+  onSubmit: (imageUrl: string) => void;
+  onChange: (url: string) => void;
+  defaultImage?: string;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -25,52 +28,50 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({
   onError,
   currentImage,
   isLoading = false,
+  onSubmit,
+  onChange,
+  defaultImage,
 }) => {
+  console.log('ImageUploadForm rendered');
+  console.log('Project ID:', projectId);
+  console.log('Current Image:', currentImage);
+  console.log('Is Loading:', isLoading);
+  console.log('onUpload prop:', onUpload);
+
   const [uploading, setUploading] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    console.log('onDrop called');
     try {
       const file = acceptedFiles[0];
-      
-      if (!file) {
-        onError('No file selected');
-        return;
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        onError('File size must be less than 5MB');
-        return;
-      }
-
-      setUploading(true);
-
-      // Generate a unique filename with timestamp to prevent collisions
       const fileExt = file.name.split('.').pop();
       const timestamp = Date.now();
       const fileName = `${uuidv4()}_${timestamp}.${fileExt}`;
+
+      console.log('Uploading file:', fileName);
+
+      setUploading(true);
 
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_NAMES.PORTFOLIO_IMAGES)
         .upload(fileName, file);
 
+      setUploading(false);
+
       if (uploadError) {
+        console.log('Error uploading file:', uploadError);
         throw uploadError;
       }
 
-      // Get the public URL for the uploaded file
-      const publicUrl = getStorageUrl(
-        'PORTFOLIO_IMAGES',
-        fileName
-      );
+      const publicUrl = `${getStorageUrl(BUCKET_NAMES.PORTFOLIO_IMAGES, fileName)}/${BUCKET_NAMES.PORTFOLIO_IMAGES}`;
+      console.log('File uploaded successfully:', publicUrl);
 
       onUpload(publicUrl, fileName);
     } catch (error) {
       console.error('Error uploading image:', error);
       onError(error instanceof Error ? error.message : 'Failed to upload image');
-    } finally {
-      setUploading(false);
     }
-  }, [projectId, onUpload, onError]);
+  }, [onUpload]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -82,6 +83,8 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({
 
   return (
     <div className="space-y-4">
+      {isLoading && <p>Loading...</p>}
+      {currentImage && <img src={currentImage} alt="Uploaded" />}
       <div
         {...getRootProps()}
         className={`
@@ -107,18 +110,17 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({
           </div>
         )}
       </div>
-
-      {currentImage && (
-        <div className="mt-4">
-          <img
-            src={currentImage}
-            alt="Current project"
-            className="max-w-xs rounded-lg shadow-md"
-          />
-        </div>
-      )}
     </div>
   );
+};
+
+ImageUploadForm.defaultProps = {
+  currentImage: null,
+  isLoading: false,
+  onUpload: () => console.warn('No upload function provided'), // Default function
+  onSubmit: () => console.warn('No submit function provided'), // Default function
+  onChange: () => console.warn('No change function provided'), // Default function
+  defaultImage: '', // Default value
 };
 
 export default ImageUploadForm;

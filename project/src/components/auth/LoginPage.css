@@ -1,0 +1,60 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* Full height */
+  background: linear-gradient(135deg, #f5f7fa, #c3cfe2); /* Soft gradient background */
+  perspective: 1000px;
+}
+
+.login-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  padding: 30px;
+  width: 400px; /* Fixed width for consistency */
+  transform: translateZ(30px);
+  transition: transform 0.3s ease;
+}
+
+.login-card:hover {
+  transform: translateZ(50px);
+}
+
+input {
+  width: 100%; /* Full width */
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px; /* Larger font size */
+  transition: box-shadow 0.3s ease;
+}
+
+input:focus {
+  box-shadow: 0 0 5px rgba(0, 120, 255, 0.5);
+  border-color: #007bff; /* Change border color on focus */
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 16px; /* Larger font size */
+  transition: transform 0.2s ease, background-color 0.3s ease;
+  width: 100%; /* Full width */
+}
+
+button:hover {
+  transform: scale(1.05);
+  background-color: #0056b3; /* Darker shade on hover */
+}
+
+.error-message {
+  color: red;
+  font-size: 14px; /* Smaller font size for error messages */
+  margin-top: -10px; /* Adjust margin */
+}

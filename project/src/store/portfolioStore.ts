@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Project, Service, Skill, ContactInfo, Certification, EducationExperience } from '../types/portfolio';
+import { Project, Service, Skill, ContactInfo, Certification, EducationExperience, ImageType, WorkExperience } from '../types/portfolio';
 import { initialProjects, initialServices, initialSkills, initialContactInfo } from './initialData';
 
 interface AboutContent {
@@ -11,18 +11,20 @@ interface AboutContent {
 
 interface PortfolioStore {
   projects: Project[];
+  initialProjects: Project[];
   services: Service[];
   skills: Skill[];
   contactInfo: ContactInfo;
-  profilePhoto?: string;
+  profilePhoto: ImageType | null;
   aboutContent: AboutContent;
   certifications: Certification[];
-  educationExperience: EducationExperience[];
+  educationExperiences: EducationExperience[];
+  workExperiences: WorkExperience[];
   setProjects: (projects: Project[]) => void;
   setServices: (services: Service[]) => void;
   setSkills: (skills: Skill[]) => void;
   setContactInfo: (contactInfo: ContactInfo) => void;
-  updateProfilePhoto: (photoUrl: string) => void;
+  updateProfilePhoto: (photo: ImageType) => void;
   updateAboutContent: (content: AboutContent) => void;
   updateProject: (id: string, project: Project) => void;
   deleteProject: (id: string) => void;
@@ -34,80 +36,125 @@ interface PortfolioStore {
   deleteSkill: (id: string) => void;
   addSkill: (skill: Skill) => void;
   updateCertifications: (certifications: Certification[]) => void;
-  updateEducationExperience: (educationExperience: EducationExperience[]) => void;
+  updateEducationExperiences: (educationExperiences: EducationExperience[]) => void;
+  updateWorkExperiences: (workExperiences: WorkExperience[]) => void;
 }
 
 const initialCertifications: Certification[] = [];
-const initialEducationExperience: EducationExperience[] = [];
+const initialLocalEducationExperiences: EducationExperience[] = [];
+const initialWorkExperiences: WorkExperience[] = [];
 
 export const usePortfolioStore = create<PortfolioStore>()(
   persist(
     (set) => ({
       projects: initialProjects,
+      initialProjects: initialProjects,
       services: initialServices,
       skills: initialSkills,
       contactInfo: initialContactInfo,
-      profilePhoto: 'img/profilepic.png',
+      profilePhoto: null,
       aboutContent: {
-        title: 'About Me',
-        subtitle: 'Software Engineer & Cybersecurity Enthusiast',
-        description: 'I am a dedicated Software Engineer with a strong interest in cybersecurity...',
+        title: '',
+        subtitle: '',
+        description: '',
       },
       certifications: initialCertifications,
-      educationExperience: initialEducationExperience,
-      setProjects: (projects) => set({ projects }),
-      setServices: (services) => set({ services }),
-      setSkills: (skills) => set({ skills }),
-      setContactInfo: (contactInfo) => set({ contactInfo }),
-      updateProfilePhoto: (photoUrl) => set({ profilePhoto: photoUrl }),
-      updateAboutContent: (content) => set({ aboutContent: content }),
-      updateProject: (id, updatedProject) =>
+      educationExperiences: initialLocalEducationExperiences,
+      workExperiences: initialWorkExperiences,
+      
+      // Optimized setters with shallow equality checks
+      setProjects: (projects: Project[]) => 
+        set((state) => projects === state.projects ? {} : { projects }),
+      
+      setServices: (services: Service[]) => 
+        set((state) => services === state.services ? {} : { services }),
+      
+      setSkills: (skills: Skill[]) => 
+        set((state) => skills === state.skills ? {} : { skills }),
+      
+      setContactInfo: (contactInfo: ContactInfo) => 
+        set((state) => contactInfo === state.contactInfo ? {} : { contactInfo }),
+      
+      updateProfilePhoto: (photo: ImageType) => 
+        set((state) => photo === state.profilePhoto ? {} : { profilePhoto: photo }),
+      
+      updateAboutContent: (content: AboutContent) => 
+        set((state) => content === state.aboutContent ? {} : { aboutContent: content }),
+      
+      // Optimized array operations with immutable updates
+      updateProject: (id: string, updatedProject: Project) =>
         set((state) => ({
-          projects: state.projects.map((project) =>
-            project.id === id ? updatedProject : project
-          ),
+          projects: state.projects.map(p => 
+            p.id === id ? { ...p, ...updatedProject } : p
+          )
         })),
-      deleteProject: (id) =>
+      
+      deleteProject: (id: string) =>
         set((state) => ({
-          projects: state.projects.filter((project) => project.id !== id),
+          projects: state.projects.filter(p => p.id !== id)
         })),
-      addProject: (project) =>
+      
+      addProject: (project: Project) =>
         set((state) => ({
-          projects: [...state.projects, project],
+          projects: [...state.projects, project]
         })),
-      updateService: (id, updatedService) =>
+      
+      updateService: (id: string, updatedService: Service) =>
         set((state) => ({
-          services: state.services.map((service) =>
-            service.id === id ? updatedService : service
-          ),
+          services: state.services.map(s => 
+            s.id === id ? { ...s, ...updatedService } : s
+          )
         })),
-      deleteService: (id) =>
+      
+      deleteService: (id: string) =>
         set((state) => ({
-          services: state.services.filter((service) => service.id !== id),
+          services: state.services.filter(s => s.id !== id)
         })),
-      addService: (service) =>
+      
+      addService: (service: Service) =>
         set((state) => ({
-          services: [...state.services, service],
+          services: [...state.services, service]
         })),
-      updateSkill: (id, updatedSkill) =>
+      
+      updateSkill: (id: string, updatedSkill: Skill) =>
         set((state) => ({
-          skills: state.skills.map((skill) =>
-            skill.id === id ? updatedSkill : skill
-          ),
+          skills: state.skills.map(s => 
+            s.id === id ? { ...s, ...updatedSkill } : s
+          )
         })),
-      deleteSkill: (id) =>
+      
+      deleteSkill: (id: string) =>
         set((state) => ({
-          skills: state.skills.filter((skill) => skill.id !== id),
+          skills: state.skills.filter(s => s.id !== id)
         })),
-      addSkill: (skill) =>
+      
+      addSkill: (skill: Skill) =>
         set((state) => ({
-          skills: [...state.skills, skill],
+          skills: [...state.skills, skill]
         })),
-      updateCertifications: (certifications) => set({ certifications }),
-      updateEducationExperience: (educationExperience) => set({ educationExperience }),
+      
+      updateCertifications: (certifications: Certification[]) =>
+        set((state) => certifications === state.certifications ? {} : { certifications }),
+      
+      updateEducationExperiences: (educationExperiences: EducationExperience[]) =>
+        set((state) => educationExperiences === state.educationExperiences ? {} : { educationExperiences }),
+      
+      updateWorkExperiences: (workExperiences: WorkExperience[]) =>
+        set((state) => workExperiences === state.workExperiences ? {} : { workExperiences }),
     }),
     {
       name: 'portfolio-storage',
+      partialize: (state) => ({
+        projects: state.projects,
+        services: state.services,
+        skills: state.skills,
+        contactInfo: state.contactInfo,
+        profilePhoto: state.profilePhoto,
+        aboutContent: state.aboutContent,
+        certifications: state.certifications,
+        educationExperiences: state.educationExperiences,
+        workExperiences: state.workExperiences,
+      }),
     }
   )
 );
