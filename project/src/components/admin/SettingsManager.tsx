@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { usePortfolioStore } from '../../store/portfolioStore';
+import usePortfolioStore from "../../store/portfolioStore";
 import { uploadImage, getPublicUrl } from '../../utils/supabase';
 import { trackEvent } from '../../utils/analytics';
 import { fetchProjectImages } from '../../lib/imageUpload'; // Adjust the import path as necessary

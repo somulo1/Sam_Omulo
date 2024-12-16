@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { usePortfolioStore } from '../../store/portfolioStore';
+import usePortfolioStore from "../../store/portfolioStore";
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Service } from '../../types/portfolio';
 import Modal from './modals/Modal';

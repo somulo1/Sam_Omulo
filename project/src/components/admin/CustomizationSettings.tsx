@@ -11,8 +11,6 @@ interface CustomizationSettingsProps extends AdminComponentProps {
 
 export function CustomizationSettings({ settings, updateSettings, onAddNew }: CustomizationSettingsProps) {
   const [localSettings, setLocalSettings] = useState({
-    primaryColor: settings.customization?.primaryColor || '#3B82F6',
-    secondaryColor: settings.customization?.secondaryColor || '#10B981',
     fontFamily: settings.customization?.fonts?.body || 'Inter, sans-serif',
     borderRadius: settings.customization?.borderRadius || '0.5rem',
     fonts: {
@@ -41,9 +39,11 @@ export function CustomizationSettings({ settings, updateSettings, onAddNew }: Cu
     }
   });
 
+  const [notification, setNotification] = useState<string | null>(null); // State for notification
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    
+
     // Convert string values to boolean for boolean fields
     const processedValue = 
       value === 'true' ? true : 
@@ -62,8 +62,6 @@ export function CustomizationSettings({ settings, updateSettings, onAddNew }: Cu
   const handleSave = () => {
     updateSettings({
       customization: {
-        primaryColor: localSettings.primaryColor,
-        secondaryColor: localSettings.secondaryColor,
         fontFamily: localSettings.fontFamily,
         borderRadius: localSettings.borderRadius,
         fonts: localSettings.fonts,
@@ -72,42 +70,52 @@ export function CustomizationSettings({ settings, updateSettings, onAddNew }: Cu
         effects: localSettings.effects,
       }
     });
+    setNotification("Settings saved successfully!"); // Set notification message
+    setTimeout(() => setNotification(null), 3000); // Clear notification after 3 seconds
+  };
+
+  const handleRestore = () => {
+    setLocalSettings({
+      fontFamily: settings.customization?.fonts?.body || 'Inter, sans-serif',
+      borderRadius: settings.customization?.borderRadius || '0.5rem',
+      fonts: {
+        heading: settings.customization?.fonts?.heading || 'Arial, sans-serif',
+        body: settings.customization?.fonts?.body || 'Inter, sans-serif',
+        code: settings.customization?.fonts?.code || 'Courier, monospace',
+      },
+      fontSizes: {
+        base: settings.customization?.fontSizes?.base || 16,
+        heading1: settings.customization?.fontSizes?.heading1 || 32,
+        heading2: settings.customization?.fontSizes?.heading2 || 24,
+        heading3: settings.customization?.fontSizes?.heading3 || 20,
+        body: settings.customization?.fontSizes?.body || 16,
+        small: settings.customization?.fontSizes?.small || 12,
+      },
+      spacing: {
+        containerPadding: settings.customization?.spacing?.containerPadding || '1rem',
+        sectionSpacing: settings.customization?.spacing?.sectionSpacing || '2rem',
+        elementSpacing: settings.customization?.spacing?.elementSpacing || '1rem',
+      },
+      effects: {
+        enableAnimations: settings.customization?.effects?.enableAnimations ?? true,
+        cardShadow: settings.customization?.effects?.cardShadow || '0 4px 6px rgba(0,0,0,0.1)',
+        buttonShadow: settings.customization?.effects?.buttonShadow || '0 2px 4px rgba(0,0,0,0.1)',
+        hoverEffects: settings.customization?.effects?.hoverEffects ?? true,
+      }
+    });
+    setNotification("Settings restored to default!"); // Set notification message
+    setTimeout(() => setNotification(null), 3000); // Clear notification after 3 seconds
   };
 
   return (
     <div className="space-y-6 p-6 bg-surface rounded-lg">
       <h2 className="text-2xl font-semibold mb-4">Site Customization</h2>
 
-      {/* Color Customization */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="primaryColor" className="block text-sm font-medium text-text-secondary mb-2">
-            Primary Color
-          </label>
-          <input
-            type="color"
-            id="primaryColor"
-            name="primaryColor"
-            value={localSettings.primaryColor}
-            onChange={handleInputChange}
-            className="w-full h-12 p-1 border rounded-md"
-          />
+      {notification && (
+        <div className="p-4 mb-4 text-green-700 bg-green-100 rounded">
+          {notification}
         </div>
-
-        <div>
-          <label htmlFor="secondaryColor" className="block text-sm font-medium text-text-secondary mb-2">
-            Secondary Color
-          </label>
-          <input
-            type="color"
-            id="secondaryColor"
-            name="secondaryColor"
-            value={localSettings.secondaryColor}
-            onChange={handleInputChange}
-            className="w-full h-12 p-1 border rounded-md"
-          />
-        </div>
-      </div>
+      )}
 
       {/* Font Customization */}
       <div>
@@ -206,157 +214,16 @@ export function CustomizationSettings({ settings, updateSettings, onAddNew }: Cu
               className="w-full p-2 border rounded-md"
             />
           </div>
-
-          <div>
-            <label htmlFor="bodyFontSize" className="block text-sm font-medium text-text-secondary mb-2">
-              Body Font Size
-            </label>
-            <input
-              type="number"
-              id="bodyFontSize"
-              name="fontSizes.body"
-              value={localSettings.fontSizes.body}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="smallFontSize" className="block text-sm font-medium text-text-secondary mb-2">
-              Small Font Size
-            </label>
-            <input
-              type="number"
-              id="smallFontSize"
-              name="fontSizes.small"
-              value={localSettings.fontSizes.small}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
         </div>
       </div>
 
-      {/* Spacing */}
-      <div>
-        <h3 className="text-lg font-medium mb-2">Spacing</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="containerPadding" className="block text-sm font-medium text-text-secondary mb-2">
-              Container Padding
-            </label>
-            <input
-              type="text"
-              id="containerPadding"
-              name="spacing.containerPadding"
-              value={localSettings.spacing.containerPadding}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="sectionSpacing" className="block text-sm font-medium text-text-secondary mb-2">
-              Section Spacing
-            </label>
-            <input
-              type="text"
-              id="sectionSpacing"
-              name="spacing.sectionSpacing"
-              value={localSettings.spacing.sectionSpacing}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="elementSpacing" className="block text-sm font-medium text-text-secondary mb-2">
-              Element Spacing
-            </label>
-            <input
-              type="text"
-              id="elementSpacing"
-              name="spacing.elementSpacing"
-              value={localSettings.spacing.elementSpacing}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Effects */}
-      <div>
-        <h3 className="text-lg font-medium mb-2">Effects</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="enableAnimations" className="block text-sm font-medium text-text-secondary mb-2">
-              Enable Animations
-            </label>
-            <select
-              id="enableAnimations"
-              name="effects.enableAnimations"
-              value={localSettings.effects.enableAnimations ? 'true' : 'false'}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            >
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="cardShadow" className="block text-sm font-medium text-text-secondary mb-2">
-              Card Shadow
-            </label>
-            <input
-              type="text"
-              id="cardShadow"
-              name="effects.cardShadow"
-              value={localSettings.effects.cardShadow}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="buttonShadow" className="block text-sm font-medium text-text-secondary mb-2">
-              Button Shadow
-            </label>
-            <input
-              type="text"
-              id="buttonShadow"
-              name="effects.buttonShadow"
-              value={localSettings.effects.buttonShadow}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="hoverEffects" className="block text-sm font-medium text-text-secondary mb-2">
-              Hover Effects
-            </label>
-            <select
-              id="hoverEffects"
-              name="effects.hoverEffects"
-              value={localSettings.effects.hoverEffects}
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md"
-            >
-              <option value={true}>Yes</option>
-              <option value={false}>No</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={handleSave}
-          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors"
-        >
-          Save Customization
+      {/* Save and Restore Buttons */}
+      <div className="flex justify-end space-x-4">
+        <button onClick={handleSave} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+          Save
+        </button>
+        <button onClick={handleRestore} className="px-4 py-2 bg-gray-300 text-black rounded-md hover:bg-gray-400">
+          Restore
         </button>
       </div>
     </div>

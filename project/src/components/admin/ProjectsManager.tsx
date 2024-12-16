@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { usePortfolioStore } from '../../store/portfolioStore';
+import usePortfolioStore from '../../store/portfolioStore';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Project } from '../../types/portfolio';
 import Modal from './modals/Modal';
-import ProjectForm from './forms/ProjectForm';
+import ImageUploadForm from './forms/ImageUploadForm'; // Import ImageUploadForm
 import { fetchProjectImages } from '../../lib/imageUpload'; // Adjust the import path as necessary
+import axios from 'axios';
 
 const ProjectsManager: React.FC = () => {
-  const { projects, deleteProject, addProject, updateProject } = usePortfolioStore();
+  const { projects, deleteProject, addProject } = usePortfolioStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | undefined>();
   const [images, setImages] = useState([]);
+  const [currentImage, setCurrentImage] = useState(''); // To store the current image URL
 
   useEffect(() => {
     const loadImages = async () => {
@@ -23,25 +25,22 @@ const ProjectsManager: React.FC = () => {
     loadImages();
   }, [selectedProject]);
 
-  const handleEdit = (project: Project) => {
-    setSelectedProject(project);
-    setIsModalOpen(true);
-  };
+  useEffect(() => {
+    const fetchProjectDetails = async () => {
+      if (selectedProject) {
+        // Replace with actual API call to fetch project details
+        const response = await axios.get(`/api/projects/details/${selectedProject.id}`);
+        const project = response.data;
+        setCurrentImage(project.imageUrl); // Set current image URL
+      }
+    };
+    fetchProjectDetails();
+  }, [selectedProject]);
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this project?')) {
       deleteProject(id);
     }
-  };
-
-  const handleSubmit = (data: Project) => {
-    if (selectedProject) {
-      updateProject(selectedProject.id, { ...data, id: selectedProject.id });
-    } else {
-      addProject({ ...data, id: crypto.randomUUID() });
-    }
-    setIsModalOpen(false);
-    setSelectedProject(undefined);
   };
 
   return (
@@ -85,12 +84,6 @@ const ProjectsManager: React.FC = () => {
             </div>
             <div className="flex justify-end space-x-2">
               <button
-                onClick={() => handleEdit(project)}
-                className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"
-              >
-                <Pencil size={20} />
-              </button>
-              <button
                 onClick={() => handleDelete(project.id)}
                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
               >
@@ -107,21 +100,16 @@ const ProjectsManager: React.FC = () => {
           setIsModalOpen(false);
           setSelectedProject(undefined);
         }}
-        title={selectedProject ? 'Edit Project' : 'Add Project'}
+        title={'Add Project'}
       >
-        <div>
-          <h2>Project Images</h2>
-          {images.map(image => (
-            <img key={image.id} src={image.file_path} alt={image.file_name} />
-          ))}
-        </div>
-        <ProjectForm
-          project={selectedProject}
-          onSubmit={handleSubmit}
-          onCancel={() => {
-            setIsModalOpen(false);
-            setSelectedProject(undefined);
+        <ImageUploadForm
+          projectId={''}
+          onUpload={(publicUrl, path) => {
           }}
+          onError={(error) => {
+            console.error('Upload error:', error);
+          }}
+          currentImage={null}
         />
       </Modal>
     </div>

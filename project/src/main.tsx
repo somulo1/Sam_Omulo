@@ -1,3 +1,4 @@
+import React from 'react'; // Added import for React
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';

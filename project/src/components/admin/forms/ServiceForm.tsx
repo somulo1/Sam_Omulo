@@ -1,5 +1,5 @@
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Service } from '../../../types/portfolio';
@@ -9,6 +9,8 @@ const serviceSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   icon: z.string().min(1, 'Icon is required'),
   bulletPoints: z.array(z.string()).min(1, 'At least one bullet point is required'),
+  level: z.string().optional(),
+  category: z.string().optional(),
 });
 
 interface ServiceFormProps {
@@ -18,14 +20,21 @@ interface ServiceFormProps {
 }
 
 const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }) => {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, control } = useForm({
     resolver: zodResolver(serviceSchema),
     defaultValues: service || {
       title: '',
       description: '',
       icon: '',
       bulletPoints: [''],
+      level: '',
+      category: '',
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'bulletPoints',
   });
 
   return (
@@ -59,28 +68,69 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, onSubmit, onCancel }
         <input
           type="text"
           {...register('icon')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          required
+          placeholder="Enter icon class (e.g., fas fa-globe)"
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         {errors.icon && (
           <p className="mt-1 text-sm text-red-600">{errors.icon.message}</p>
         )}
       </div>
 
-      <div className="flex justify-end space-x-2">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Level</label>
+        <input
+          type="text"
+          {...register('level')}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Category</label>
+        <input
+          type="text"
+          {...register('category')}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700">Bullet Points</label>
+        <ul>
+          {fields.map((field, index) => (
+            <li key={field.id}>
+              <input
+                type="text"
+                {...register(`bulletPoints.${index}`)}
+                placeholder={`Bullet Point ${index + 1}`}
+                className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                className="text-red-500 hover:text-red-700"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
         <button
           type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+          onClick={() => append({ id: Math.random() })}
+          className="text-blue-500 hover:text-blue-700 mt-2"
         >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
-        >
-          Save
+          + Add Bullet Point
         </button>
       </div>
+      <button type="button" onClick={onCancel} className="mt-4 bg-gray-300 text-black px-4 py-2 rounded-md mr-4">
+      Cancel
+     </button>
+     <button type="submit" className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md">
+      Submit
+     </button>
+
     </form>
   );
 };

@@ -68,27 +68,27 @@ const adminTabs = [
     component: Analytics
   },
   {
-    name: 'Projects',
+    name: 'Project Section',
     icon: FileText,
     component: ProjectsManager
   },
   {
-    name: 'Skills',
+    name: 'Skill Section',
     icon: Users,
     component: SkillsManager
   },
   {
-    name: 'Services',
+    name: 'Services Section',
     icon: MessageSquare,
     component: ServicesManager
   },
   {
-    name: 'About',
+    name: 'About Section',
     icon: FileText,
     component: AboutController
   },
   {
-    name: 'Contact',
+    name: 'Contact section',
     icon: MessageSquare,
     component: ContactManager
   },
@@ -103,7 +103,7 @@ const adminTabs = [
     component: SettingsManager
   },
   {
-    name: 'Customization',
+    name: 'Site Customization',
     icon: Settings,
     component: CustomizationSettings,
   },
@@ -133,7 +133,7 @@ const adminTabs = [
     component: Analytics,
   },
   {
-    name: 'Theme',
+    name: 'Themes Settings',
     icon: Settings,
     component: ThemeEditor,
   },
@@ -143,7 +143,7 @@ const adminTabs = [
     component: AccessControl,
   },
   {
-    name: 'Media',
+    name: 'Socia Media',
     icon: Image,
     component: ContactManager,
   },

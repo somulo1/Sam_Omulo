@@ -21,13 +21,14 @@
     "config:generate": "node scripts/config-manager.js",
     "config:validate": "node scripts/config-validator.js",
     "storage:check": "node scripts/check-storage-buckets.js",
-    "storage:diagnose": "node scripts/supabase-storage-diagnostic.js"
+    "storage:diagnose": "node scripts/supabase-storage-diagnostic.js",
+    "serve": "vite"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.6",
     "@hookform/resolvers": "^3.4.0",
     "@sendgrid/mail": "^8.1.4",
-    "@supabase/supabase-js": "^2.47.0",
+    "@supabase/supabase-js": "^2.48.0",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

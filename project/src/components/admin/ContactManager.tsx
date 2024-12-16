@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { usePortfolioStore } from '../../store/portfolioStore';
+import usePortfolioStore from "../../store/portfolioStore";
 import { Mail, MapPin, Facebook, Twitter, Linkedin, Github } from 'lucide-react';
 import Modal from './modals/Modal';
 
 const ContactManager: React.FC = () => {
   const { contactInfo, setContactInfo } = usePortfolioStore();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(contactInfo);
+  const [formData, setFormData] = useState({...contactInfo, socialLinks: { instagram: '', youtube: '', whatsapp: '', ...contactInfo.socialLinks }});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,9 +81,30 @@ const ContactManager: React.FC = () => {
             </div>
             <div className="flex items-center gap-2">
               <Github className="text-blue-500" />
-              <a href={contactInfo.socialLinks.github_url} target="_blank" rel="noopener noreferrer"
+              <a href={contactInfo.socialLinks.github} target="_blank" rel="noopener noreferrer"
                  className="text-blue-500 hover:underline">
                 GitHub Profile
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <img src="https://cdn-icons-png.flaticon.com/512/87/87390.png" alt="Instagram" className="text-blue-500 w-5 h-5" />
+              <a href={contactInfo.socialLinks.instagram} target="_blank" rel="noopener noreferrer"
+                 className="text-blue-500 hover:underline">
+                Instagram Profile
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" alt="YouTube" className="text-blue-500 w-5 h-5" />
+              <a href={contactInfo.socialLinks.youtube} target="_blank" rel="noopener noreferrer"
+                 className="text-blue-500 hover:underline">
+                YouTube Profile
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <img src="https://cdn-icons-png.flaticon.com/512/732/732200.png" alt="WhatsApp" className="text-blue-500 w-5 h-5" />
+              <a href={contactInfo.socialLinks.whatsapp} target="_blank" rel="noopener noreferrer"
+                 className="text-blue-500 hover:underline">
+                WhatsApp Profile
               </a>
             </div>
           </div>
@@ -150,9 +171,42 @@ const ContactManager: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700">GitHub URL</label>
             <input
               type="url"
-              name="socialLinks.github_url"
-              value={formData.socialLinks.github_url}
+              name="socialLinks.github"
+              value={formData.socialLinks.github}
               onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Instagram URL</label>
+            <input
+              type="url"
+              name="socialLinks.instagram"
+              value={formData.socialLinks.instagram}
+              onChange={handleChange}
+              placeholder="Instagram URL"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">YouTube URL</label>
+            <input
+              type="url"
+              name="socialLinks.youtube"
+              value={formData.socialLinks.youtube}
+              onChange={handleChange}
+              placeholder="YouTube URL"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">WhatsApp URL</label>
+            <input
+              type="url"
+              name="socialLinks.whatsapp"
+              value={formData.socialLinks.whatsapp}
+              onChange={handleChange}
+              placeholder="WhatsApp URL"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>

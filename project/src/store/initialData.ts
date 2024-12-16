@@ -32,7 +32,6 @@ export const initialServices: Service[] = [
     description: 'Protecting networks and data with proactive security measures.',
     icon: 'bx bx-shield',
     bulletPoints: [
-      'Threat Analysis & Risk Management',
       'Network Security',
       'Incident Response',
       'Data Encryption',
@@ -79,6 +78,18 @@ export const initialSkills: Skill[] = [
     ]
   }
 ];
+
+interface ContactInfo {
+  email: string;
+  location: string;
+  socialLinks: {
+    facebook: string;
+    twitter: string;
+    linkedin: string;
+    github: string;
+  };
+  [key: string]: any; // Allow dynamic keys
+}
 
 export const initialContactInfo: ContactInfo = {
   email: 'mcomulosammy37@gmail.com',

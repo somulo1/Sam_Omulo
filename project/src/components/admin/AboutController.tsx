@@ -1,4 +1,4 @@
-import { usePortfolioStore } from '../../store/portfolioStore';
+import usePortfolioStore from "../../store/portfolioStore";
 import React, { useState } from 'react';
 
 const AboutController = () => {
